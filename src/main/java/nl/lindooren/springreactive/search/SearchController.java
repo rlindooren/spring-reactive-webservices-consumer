@@ -5,6 +5,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -27,8 +28,7 @@ public class SearchController {
      * @return
      */
     @GetMapping(value = "/search/albumsAndBooks/{query}", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public List<MediaItem> searchMedia(@PathVariable String query) {
-        return searchService.searchAlbumsAndBooks(query)
-                .collectList().block();
+    public Flux<MediaItem> searchMedia(@PathVariable String query) {
+        return searchService.searchAlbumsAndBooks(query);
     }
 }
