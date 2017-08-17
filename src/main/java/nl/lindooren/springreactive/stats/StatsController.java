@@ -15,6 +15,11 @@ public class StatsController {
 
     private StatsService statsService;
 
+    @Autowired
+    public StatsController(StatsService statsService) {
+        this.statsService = statsService;
+    }
+
     /**
      * Web Socket emitting information about actual webservice calls made to all upstream services
      * <pre>
@@ -94,11 +99,6 @@ public class StatsController {
             // Don't respond with 200 (for most load balancers etc this is the initial check 200 = OK)
             return ResponseEntity.status(HttpStatus.I_AM_A_TEAPOT).body("There's an unhealthy webservice");
         }
-    }
-
-    @Autowired
-    public void setStatsService(StatsService statsService) {
-        this.statsService = statsService;
     }
 
     @ResponseStatus(value = HttpStatus.FAILED_DEPENDENCY, reason = "The statistics are not available yet (a call has to be made first to the webservice)")

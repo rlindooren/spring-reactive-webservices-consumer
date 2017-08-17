@@ -19,8 +19,9 @@ public class GoogleBookServiceImpl implements GoogleBookService {
     private WebClient webClient;
     private StatsService statsService;
 
-    @PostConstruct
-    private void init() {
+    @Autowired
+    public GoogleBookServiceImpl(StatsService statsService) {
+        this.statsService = statsService;
         webClient = WebClient.create("https://www.googleapis.com");
     }
 
@@ -42,11 +43,6 @@ public class GoogleBookServiceImpl implements GoogleBookService {
 
     private Book convertToBook(GoogleBookResponse.Item item) {
         return new Book(item.volumeInfo.getTitle(), item.volumeInfo.getAuthors().orElse(Collections.emptySet()));
-    }
-
-    @Autowired
-    public void setStatsService(StatsService statsService) {
-        this.statsService = statsService;
     }
 
     /**

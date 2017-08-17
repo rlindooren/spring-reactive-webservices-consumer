@@ -26,7 +26,8 @@ public class ItunesAlbumServiceImpl implements ItunesAlbumService {
     private StatsService statsService;
 
     @Autowired
-    public ItunesAlbumServiceImpl(ObjectMapper mapper) {
+    public ItunesAlbumServiceImpl(ObjectMapper mapper, StatsService statsService) {
+        this.statsService = statsService;
         // Itunes uses a legacy mime type for Json
         ExchangeStrategies strategies = ExchangeStrategies.builder().codecs(clientCodecConfigurer ->
             clientCodecConfigurer.customCodecs().decoder(
@@ -58,11 +59,6 @@ public class ItunesAlbumServiceImpl implements ItunesAlbumService {
 
     private Album convertToAlbum(ItunesAlbumResponse.Result result) {
         return new Album(result.getCollectionName(), result.getArtistName());
-    }
-
-    @Autowired
-    public void setStatsService(StatsService statsService) {
-        this.statsService = statsService;
     }
 
     /**
