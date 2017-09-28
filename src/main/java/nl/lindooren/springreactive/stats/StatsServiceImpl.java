@@ -26,12 +26,10 @@ public class StatsServiceImpl implements StatsService {
     private UnicastProcessor<WebserviceCallEvent> processor;
     private Flux<WebserviceCallEvent> hotEvents;
     private Map<String, Flux<WebserviceStats>> statsForWebservices;
-    private Map<String, WebserviceStats> currentStatStatesForWebservices;
 
     @PostConstruct
     private void init() {
         statsForWebservices = new ConcurrentHashMap<>();
-        currentStatStatesForWebservices = new ConcurrentHashMap<>();
         processor = UnicastProcessor.create();
         hotEvents = processor.publish().autoConnect().doOnNext(this::startCollectingStatsForNewWebservice);
         // This subscribe will trigger the onNext without having to wait on 'real' subscribers
@@ -65,13 +63,18 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     public Optional<WebserviceStats> getCurrentStatsForWebservice(String webserviceName) {
-        return Optional.ofNullable(currentStatStatesForWebservices.get(webserviceName));
+        return Optional.ofNullable(
+                statsForWebservices
+                        .getOrDefault(webserviceName, Flux.empty())
+                        .take(1).singleOrEmpty()
+                        .take(Duration.ofMillis(50)).block()
+        );
     }
 
     @Override
     public boolean areAllWebservicesConsideredHealthy() {
-        return currentStatStatesForWebservices.values().stream()
-                .allMatch(WebserviceStats::isHealthy);
+        return statsForWebservices.keySet().stream().map(s -> getCurrentStatsForWebservice(s))
+                .allMatch(webserviceStats -> webserviceStats.isPresent() && webserviceStats.get().isHealthy());
     }
 
     private void startCollectingStatsForNewWebservice(WebserviceCallEvent webserviceCallEvent) {
@@ -85,13 +88,12 @@ public class StatsServiceImpl implements StatsService {
                                     createInitialWebserviceStatsForAggregation(),
                                     this::aggregateWebserviceCallEvents
                             )
-                    ).map(Tuple2::getT1);
+                    ).map(Tuple2::getT1)
+                    .cache(1);
             statsForWebservices.put(webserviceName, statsStream);
             log.info("Created aggregation stream for webservice: {}", webserviceName);
-
-            // Store the state
-            // TODO: use caching?
-            statsStream.subscribe(stats -> currentStatStatesForWebservices.put(webserviceName, stats));
+            // Use a noop subscriber to have the stream start emitting events even when there's no 'real' subscriber yet
+            statsStream.subscribe();
         }
     }
 
