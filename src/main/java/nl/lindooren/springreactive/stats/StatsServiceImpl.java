@@ -5,8 +5,8 @@ import org.pcollections.TreePVector;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.UnicastProcessor;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -23,14 +23,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StatsServiceImpl implements StatsService {
 
     private static final Duration STATS_INTERVAL = Duration.ofSeconds(5);
-    private UnicastProcessor<WebserviceCallEvent> processor;
+    private DirectProcessor<WebserviceCallEvent> processor;
     private Flux<WebserviceCallEvent> hotEvents;
     private Map<String, Flux<WebserviceStats>> statsForWebservices;
 
     @PostConstruct
     private void init() {
         statsForWebservices = new ConcurrentHashMap<>();
-        processor = UnicastProcessor.create();
+        processor = DirectProcessor.create();
         hotEvents = processor.publish().autoConnect().doOnNext(this::startCollectingStatsForNewWebservice);
         // This subscribe will trigger the onNext without having to wait on 'real' subscribers
         hotEvents.subscribe();
